@@ -1,0 +1,6 @@
+name = "nat_normal_form"
+version = "0.1.0"
+defaultTargets = ["NatNormalForm"]
+
+[[lean_lib]]
+name = "NatNormalForm"
