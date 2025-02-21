@@ -1,3 +1,6 @@
+import NatNormalForm.Relation
+
+
 inductive NatTerm: Type where
   | Z: NatTerm
   | S: NatTerm -> NatTerm
@@ -39,58 +42,83 @@ def NatTerm.eval1 (t: NatTerm): NatTerm := match t with
     | o => o.eval1 * n2.eval1
 
 
-inductive TermReduce: NatTerm -> NatTerm -> Prop where
-  | ZPlus {n: NatTerm}: TermReduce (0 + n) n
-  | SPlus {m n}: TermReduce (m.S + n) (m + n).S
-  | ZMult {n}: TermReduce (0 * n) 0
-  | SMult {m n}: TermReduce (m.S * n) ((m * n) + n)
+inductive NatTerm.R1: Relation NatTerm where
+  | ZPlus {n: NatTerm}: NatTerm.R1 (0 + n) n
+  | SPlus {m n}: NatTerm.R1 (m.S + n) (m + n).S
+  | ZMult {n}: NatTerm.R1 (0 * n) 0
+  | SMult {m n}: NatTerm.R1 (m.S * n) ((m * n) + n)
   -- for congruence
-  | SCong {m n}: TermReduce m n -> TermReduce m.S n.S
-  | PlusCong1 {m1 m2 n}: TermReduce m1 m2 -> TermReduce (m1 + n) (m2 + n)
-  | PlusCong2 {m n1 n2}: TermReduce n1 n2 -> TermReduce (m + n1) (m + n2)
-  | MultCong1 {m1 m2 n}: TermReduce m1 m2 -> TermReduce (m1 * n) (m2 * n)
-  | MultCong2 {m n1 n2}: TermReduce n1 n2 -> TermReduce (m * n1) (m * n2)
+  | SCong {m n}: NatTerm.R1 m n -> NatTerm.R1 m.S n.S
+  | PlusCong1 {m1 m2 n}: NatTerm.R1 m1 m2 -> NatTerm.R1 (m1 + n) (m2 + n)
+  | PlusCong2 {m n1 n2}: NatTerm.R1 n1 n2 -> NatTerm.R1 (m + n1) (m + n2)
+  | MultCong1 {m1 m2 n}: NatTerm.R1 m1 m2 -> NatTerm.R1 (m1 * n) (m2 * n)
+  | MultCong2 {m n1 n2}: NatTerm.R1 n1 n2 -> NatTerm.R1 (m * n1) (m * n2)
 
 
-abbrev NatTerm.R1 := TermReduce
+theorem NatTerm.R1.irrefl: forall {n: NatTerm}, Not (n.R1 n) := by
+  intros n H
+  induction n with
+  | Z =>
+    cases H
+  | S n' IHn' =>
+    apply IHn'
+    cases H with
+    | SCong H' =>
+      apply H'
+  | Plus n1 n2 IHn1 IHn2 =>
+    cases H with
+    | PlusCong1 H' =>
+      apply IHn1
+      apply H'
+    | PlusCong2 H' =>
+      apply IHn2
+      apply H'
+  | Mult n1 n2 IHn1 IHn2 =>
+    cases H with
+    | MultCong1 H' =>
+      apply IHn1
+      apply H'
+    | MultCong2 H' =>
+      apply IHn2
+      apply H'
 
 
-inductive TermReduce2: NatTerm -> NatTerm -> Prop where
-  | Refl {x}: TermReduce2 x x
+inductive NatTerm.R2: Relation NatTerm where
+  | Refl {x}: NatTerm.R2 x x
   -- congruence
-  | SCong {m n}: TermReduce2 m n -> TermReduce2 m.S n.S
-  | PlusCong {m1 m2 n1 n2}: TermReduce2 m1 m2 -> TermReduce2 n1 n2 -> TermReduce2 (m1 + n1) (m2 + n2)
-  | MultCong {m1 m2 n1 n2}: TermReduce2 m1 m2 -> TermReduce2 n1 n2 -> TermReduce2 (m1 * n1) (m2 * n2)
+  | SCong {m n}: NatTerm.R2 m n -> NatTerm.R2 m.S n.S
+  | PlusCong {m1 m2 n1 n2}: NatTerm.R2 m1 m2 -> NatTerm.R2 n1 n2 -> NatTerm.R2 (m1 + n1) (m2 + n2)
+  | MultCong {m1 m2 n1 n2}: NatTerm.R2 m1 m2 -> NatTerm.R2 n1 n2 -> NatTerm.R2 (m1 * n1) (m2 * n2)
   -- computation
-  | ZPlus {n1 n2}: TermReduce2 n1 n2 -> TermReduce2 (0 + n1) n2
-  | SPlus {m1 m2 n1 n2}: TermReduce2 m1 m2 -> TermReduce2 n1 n2 -> TermReduce2 (m1.S + n1) (m2 + n2).S
-  | ZMult {n}: TermReduce2 (0 * n) .Z
-  | SMult {m1 m2 n1 n2}: TermReduce2 m1 m2 -> TermReduce2 n1 n2 -> TermReduce2 (m1.S * n1) (m2 * n2 + n2)
+  | ZPlus {n1 n2}: NatTerm.R2 n1 n2 -> NatTerm.R2 (0 + n1) n2
+  | SPlus {m1 m2 n1 n2}: NatTerm.R2 m1 m2 -> NatTerm.R2 n1 n2 -> NatTerm.R2 (m1.S + n1) (m2 + n2).S
+  | ZMult {n}: NatTerm.R2 (0 * n) .Z
+  | SMult {m1 m2 n1 n2}: NatTerm.R2 m1 m2 -> NatTerm.R2 n1 n2 -> NatTerm.R2 (m1.S * n1) (m2 * n2 + n2)
 
 
-abbrev NatTerm.R2 := TermReduce2
 
-theorem R2_imp_R1: forall {m n}, NatTerm.R1 m n -> NatTerm.R2 m n := by
-  intros m n r1
-  induction r1 with
-  | ZPlus =>
-    apply TermReduce2.ZPlus .Refl
-  | @SPlus m n =>
-    apply @TermReduce2.SPlus m m n n .Refl .Refl
-  | ZMult =>
-    apply TermReduce2.ZMult
-  | @SMult m n =>
-    apply @TermReduce2.SMult m m n n .Refl .Refl
-  | SCong _ IH =>
-    apply TermReduce2.SCong IH
-  | @PlusCong1 m1 m2 n r IH =>
-    apply @TermReduce2.PlusCong m1 m2 n n IH .Refl
-  | @PlusCong2 m n1 n2 r IH =>
-    apply @TermReduce2.PlusCong m m n1 n2 .Refl IH
-  | @MultCong1 m1 m2 n r IH =>
-    apply @TermReduce2.MultCong m1 m2 n n IH .Refl
-  | @MultCong2 m n1 n2 r IH =>
-    apply @TermReduce2.MultCong m m n1 n2 .Refl IH
+instance R2_imp_R1: SubRel NatTerm.R1 NatTerm.R2 where
+  inclusion := by
+    intros m n r1
+    induction r1 with
+    | ZPlus =>
+      apply NatTerm.R2.ZPlus .Refl
+    | @SPlus m n =>
+      apply @NatTerm.R2.SPlus m m n n .Refl .Refl
+    | ZMult =>
+      apply NatTerm.R2.ZMult
+    | @SMult m n =>
+      apply @NatTerm.R2.SMult m m n n .Refl .Refl
+    | SCong _ IH =>
+      apply NatTerm.R2.SCong IH
+    | @PlusCong1 m1 m2 n r IH =>
+      apply @NatTerm.R2.PlusCong m1 m2 n n IH .Refl
+    | @PlusCong2 m n1 n2 r IH =>
+      apply @NatTerm.R2.PlusCong m m n1 n2 .Refl IH
+    | @MultCong1 m1 m2 n r IH =>
+      apply @NatTerm.R2.MultCong m1 m2 n n IH .Refl
+    | @MultCong2 m n1 n2 r IH =>
+      apply @NatTerm.R2.MultCong m m n1 n2 .Refl IH
 
 
 theorem R2_S_inverse: forall {m n: NatTerm},
@@ -98,7 +126,7 @@ theorem R2_S_inverse: forall {m n: NatTerm},
   intros m n H
   cases H
   case Refl =>
-    apply TermReduce2.Refl
+    apply NatTerm.R2.Refl
   case SCong H =>
     apply H
 
@@ -108,117 +136,323 @@ theorem R2_eval1: forall (m: NatTerm), m.R2 m.eval1 := by
   induction m with
   | Z =>
     unfold NatTerm.eval1
-    apply TermReduce2.Refl
+    apply NatTerm.R2.Refl
   | S n IHn =>
     unfold NatTerm.eval1
-    apply TermReduce2.SCong IHn
+    apply NatTerm.R2.SCong IHn
   | Plus m n IHm IHn =>
     unfold NatTerm.eval1
     cases m
     case Z =>
       simp
-      apply TermReduce2.ZPlus IHn
+      apply NatTerm.R2.ZPlus IHn
     case S m' =>
       simp
       unfold NatTerm.eval1 at IHm
       have H2 := R2_S_inverse IHm
-      apply TermReduce2.SPlus H2 IHn
+      apply NatTerm.R2.SPlus H2 IHn
     case Plus m1 m2 =>
       simp
-      apply TermReduce2.PlusCong IHm IHn
+      apply NatTerm.R2.PlusCong IHm IHn
     case Mult m1 m2 =>
       simp
-      apply TermReduce2.PlusCong IHm IHn
+      apply NatTerm.R2.PlusCong IHm IHn
   | Mult m n IHm IHn =>
     unfold NatTerm.eval1
     cases m
     case Z =>
       simp
-      apply TermReduce2.ZMult
+      apply NatTerm.R2.ZMult
     case S m' =>
       simp
       unfold NatTerm.eval1 at IHm
       have H2 := R2_S_inverse IHm
-      apply TermReduce2.SMult H2 IHn
+      apply NatTerm.R2.SMult H2 IHn
     case Plus m1 m2 =>
       simp
-      apply TermReduce2.MultCong IHm IHn
+      apply NatTerm.R2.MultCong IHm IHn
     case Mult m1 m2 =>
       simp
-      apply TermReduce2.MultCong IHm IHn
+      apply NatTerm.R2.MultCong IHm IHn
 
 
-theorem R2_mn_R2_nm_eval1: forall (m n: NatTerm), m.R2 n -> n.R2 m.eval1 := by
+theorem R2_mn_R2_nm_eval1: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := by
   intros m n r
   induction r with
   | Refl => apply R2_eval1
   | SCong r' IHr' =>
     unfold NatTerm.eval1
-    apply TermReduce2.SCong IHr'
+    apply NatTerm.R2.SCong IHr'
   | @PlusCong m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
     cases m1
     case Z =>
       cases r1
       unfold NatTerm.eval1; simp
-      apply TermReduce2.ZPlus IHr2
+      apply NatTerm.R2.ZPlus IHr2
     case S m1' =>
       cases r1
       case Refl =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
         have IHr1 := R2_S_inverse IHr1
-        apply TermReduce2.SPlus IHr1 IHr2
+        apply NatTerm.R2.SPlus IHr1 IHr2
       case SCong t H =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
         have IHr1 := R2_S_inverse IHr1
-        apply TermReduce2.SPlus IHr1 IHr2
+        apply NatTerm.R2.SPlus IHr1 IHr2
     case Plus t1 t2 =>
       unfold NatTerm.eval1; simp
-      apply TermReduce2.PlusCong IHr1 IHr2
+      apply NatTerm.R2.PlusCong IHr1 IHr2
     case Mult t1 t2 =>
       unfold NatTerm.eval1; simp
       cases r1 with
       | _ =>
-        apply TermReduce2.PlusCong IHr1 IHr2
+        apply NatTerm.R2.PlusCong IHr1 IHr2
   | @MultCong m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
     cases m1
     case Z =>
       cases r1
       unfold NatTerm.eval1; simp
-      apply TermReduce2.ZMult
+      apply NatTerm.R2.ZMult
     case S m1' =>
       cases r1
       case Refl =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
         have IHr1 := R2_S_inverse IHr1
-        apply TermReduce2.SMult IHr1 IHr2
+        apply NatTerm.R2.SMult IHr1 IHr2
       case SCong t H =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
         have IHr1 := R2_S_inverse IHr1
-        apply TermReduce2.SMult IHr1 IHr2
+        apply NatTerm.R2.SMult IHr1 IHr2
     case Plus t1 t2 =>
       unfold NatTerm.eval1; simp
-      apply TermReduce2.MultCong IHr1 IHr2
+      apply NatTerm.R2.MultCong IHr1 IHr2
     case Mult t1 t2 =>
       unfold NatTerm.eval1; simp
       cases r1 with
       | _ =>
-        apply TermReduce2.MultCong IHr1 IHr2
+        apply NatTerm.R2.MultCong IHr1 IHr2
   | @ZPlus n1 n2 r IHr =>
     unfold NatTerm.eval1; simp
     apply IHr
   | @SPlus m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
     unfold NatTerm.eval1; simp
-    apply TermReduce2.SCong
-    apply TermReduce2.PlusCong IHr1 IHr2
+    apply NatTerm.R2.SCong
+    apply NatTerm.R2.PlusCong IHr1 IHr2
   | @ZMult t =>
     unfold NatTerm.eval1; simp
-    apply TermReduce2.Refl
+    apply NatTerm.R2.Refl
   | @SMult m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
     unfold NatTerm.eval1; simp
-    apply TermReduce2.PlusCong
-    . apply TermReduce2.MultCong IHr1 IHr2
+    apply NatTerm.R2.PlusCong
+    . apply NatTerm.R2.MultCong IHr1 IHr2
     . apply IHr2
+
+
+/--
+Multi-step reduction
+-/
+abbrev NatTerm.MR1 := RTCl NatTerm.R1
+abbrev NatTerm.Eq1 := ECl NatTerm.R1
+
+
+theorem NatTerm.MR1.SCong {m n: NatTerm} (r: m.MR1 n) : m.S.MR1 n.S := by
+  apply NatTerm.R1.keep_cong NatTerm.S
+  . apply NatTerm.R1.SCong
+  . apply r
+
+
+theorem NatTerm.MR1.PlusCong {m1 m2 n1 n2: NatTerm}
+  (r1: m1.MR1 m2) (r2: n1.MR1 n2): (m1 + n1).MR1 (m2 + n2) := by
+  apply NatTerm.MR1.trans (b := m1 + n2)
+  . /- (m1 + n1).MR1 (m1 + n2) -/
+    apply NatTerm.R1.keep_cong
+    . apply NatTerm.R1.PlusCong2
+    . apply r2
+  . /- (m1 + n2).MR1 (m2 + n2) -/
+    apply NatTerm.R1.keep_cong (fun x => x + n2)
+    . intros a b H
+      apply NatTerm.R1.PlusCong1 H
+    . apply r1
+
+
+theorem NatTerm.MR1.MultCong {m1 m2 n1 n2: NatTerm}
+  (r1: m1.MR1 m2) (r2: n1.MR1 n2): (m1 * n1).MR1 (m2 * n2) := by
+  apply NatTerm.MR1.trans (b := m1 * n2)
+  . /- (m1 * n1).MR1 (m1 * n2) -/
+    apply NatTerm.R1.keep_cong
+    . apply NatTerm.R1.MultCong2
+    . apply r2
+  . /- (m1 * n2).MR1 (m2 * n2) -/
+    apply NatTerm.R1.keep_cong (fun x => x * n2)
+    . intros a b H
+      apply NatTerm.R1.MultCong1 H
+    . apply r1
+
+
+instance R2_sub_MR1: NatTerm.R2 sub_rel NatTerm.MR1 where
+  inclusion := by
+    intros a b r
+    induction r with
+    | @Refl x =>
+      apply NatTerm.MR1.refl
+    | @SCong m n r IHr =>
+      apply NatTerm.MR1.SCong IHr
+    | @PlusCong m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
+      apply NatTerm.MR1.PlusCong IHr1 IHr2
+    | @MultCong m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
+      apply NatTerm.MR1.MultCong IHr1 IHr2
+    | @ZPlus n1 n2 r IHr =>
+      apply NatTerm.MR1.trans (b := n1)
+      . apply NatTerm.R1.inclusion
+        apply NatTerm.R1.ZPlus
+      . apply IHr
+    | @SPlus m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
+      apply NatTerm.MR1.trans (b := (m1 + n1).S)
+      . apply NatTerm.R1.inclusion
+        apply NatTerm.R1.SPlus
+      . apply NatTerm.MR1.SCong
+        apply NatTerm.MR1.PlusCong IHr1 IHr2
+    | @ZMult n =>
+      apply NatTerm.R1.inclusion
+      apply NatTerm.R1.ZMult
+    | @SMult m1 m2 n1 n2 r1 r2 IHr1 IHr2 =>
+      apply NatTerm.MR1.trans (b := (m1 * n1 + n1))
+      . /- (m1.S * n1).MR1 (m1 * n1 + n1) -/
+        apply NatTerm.R1.inclusion
+        apply NatTerm.R1.SMult
+      . /- (m1 * n1 + n1).MR1 (m2 * n2 + n2) -/
+        apply NatTerm.MR1.PlusCong
+        . /- (m1 * n1).MR1 (m2 * n2) -/
+          apply NatTerm.MR1.MultCong IHr1 IHr2
+        . exact IHr2
+
+
+instance: KeepCong NatTerm.R2 NatTerm.MR1 where
+  keep_cong := by
+    intros f HR2 a b HMR1
+    induction HMR1 with
+    | @inclusion a b r =>
+      apply NatTerm.R2.inclusion
+      apply HR2
+      apply NatTerm.R1.inclusion
+      exact r
+    | @refl x =>
+      apply NatTerm.MR1.refl
+    | @trans a b c r1 r2 IHr1 IHr2 =>
+      apply NatTerm.MR1.trans
+      . apply IHr1
+      . apply IHr2
+
+
+theorem NatTerm.R2.eval1_cong:
+  forall {a b: NatTerm}, a.R2 b -> a.eval1.R2 b.eval1 := by
+    intros a b H
+    apply R2_mn_R2_nm_eval1
+    apply R2_mn_R2_nm_eval1
+    apply H
+
+
+theorem NatTerm.MR1.eval1_cong:
+  forall {a b: NatTerm}, a.MR1 b -> a.eval1.MR1 b.eval1 := by
+    intros a b H
+    apply NatTerm.R2.keep_cong
+    . apply NatTerm.R2.eval1_cong
+    . apply H
+
+
+theorem NatTerm.R1.semi_confluence: forall {m1 m2 m3: NatTerm},
+  m1.R1 m2 -> m1.MR1 m3 -> exists m4, m2.MR1 m4 /\ m3.MR1 m4 := by
+  intros m1 m2 m3 H12 H13
+  exists m3.eval1
+  apply And.intro
+  . /- m2.MR1 m3.eval1 -/
+    apply NatTerm.MR1.trans (b := m1.eval1)
+    . /- m2.MR1 m1.eval1 -/
+      apply NatTerm.R2.inclusion
+      apply R2_mn_R2_nm_eval1
+      apply NatTerm.R1.inclusion
+      exact H12
+    . /- m1.eval1.MR1 m3.eval1 -/
+      apply NatTerm.MR1.eval1_cong
+      exact H13
+  . /- m3.MR1 m3.eval1 -/
+    apply NatTerm.R2.inclusion
+    apply R2_eval1
+
+
+theorem NatTerm.R1.confluence: forall {m1 m2 m3: NatTerm},
+  m1.MR1 m2 -> m1.MR1 m3 -> exists m4, m2.MR1 m4 /\ m3.MR1 m4 := by
+  intros m1 m2 m3
+  intros H12
+  revert m3
+  induction H12 with
+  | @inclusion a b r =>
+    intros m3 H13
+    apply NatTerm.R1.semi_confluence
+    . apply r
+    . apply H13
+  | @refl x =>
+    intros m3 H13
+    exists m3
+    apply And.intro
+    . apply H13
+    . apply NatTerm.MR1.refl
+  | @trans a b c r1 r2 IHr1 IHr2 =>
+    intros m3 H13
+    let ⟨x, ⟨Hbx, Hm3x⟩⟩ := IHr1 H13
+    let ⟨m4, ⟨Hcm4, Hxm4⟩⟩ := IHr2 Hbx
+    exists m4
+    apply And.intro
+    . apply Hcm4
+    . apply NatTerm.MR1.trans Hm3x Hxm4
+
+
+def NatTerm.R1_normal (n: NatTerm) := Not (exists m, n.R1 m)
+
+
+def NatTerm.MR1_normal (n: NatTerm) := forall {m}, n.MR1 m -> n = m
+
+
+theorem NatTerm.MR1_normal.R1_normal:
+  forall {n: NatTerm}, n.MR1_normal -> n.R1_normal := by
+  intros n HMR1 Hm
+  let ⟨m, pm⟩ := Hm
+  have H: n.MR1 m := NatTerm.R1.inclusion pm
+  have E := HMR1 H
+  rewrite [E] at pm
+  apply NatTerm.R1.irrefl pm
+
+
+theorem NatTerm.R1_normal.MR1_normal:
+  forall {n: NatTerm}, n.R1_normal -> n.MR1_normal := by
+  intros n HR1 m HMR1
+  induction HMR1 with
+  | @inclusion a b H =>
+    exfalso
+    apply HR1
+    exists b
+  | @refl x =>
+    eq_refl
+  | @trans a b c r1 r2 IHr1 IHr2 =>
+    have E1 := IHr1 HR1
+    rewrite [E1]
+    rewrite [E1] at HR1
+    have E2 := IHr2 HR1
+    exact E2
+
+
+theorem NatTerm.R1_normal_unique {n m1 m2: NatTerm}:
+  m1.R1_normal -> m2.R1_normal ->
+  (n.MR1 m1) -> (n.MR1 m2) ->
+  (m1 = m2) := by
+    intros N1 N2 r1 r2
+    have ⟨m4, ⟨H14, H24 ⟩⟩ := NatTerm.R1.confluence r1 r2
+    have E1 := N1.MR1_normal H14
+    have E2 := N2.MR1_normal H24
+    rewrite [E1]
+    rewrite [E2]
+    eq_refl
