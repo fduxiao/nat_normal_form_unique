@@ -128,7 +128,7 @@ instance R2_imp_R1: SubRel NatTerm.R1 NatTerm.R2 where
       apply @NatTerm.R2.MultCong m m n1 n2 .Refl IH
 
 
-theorem R2_S_inverse: forall {m n: NatTerm},
+theorem NatTerm.R2.S_inverse: forall {m n: NatTerm},
   m.S.R2 n.S -> m.R2 n := by
   intros m n H
   cases H
@@ -138,7 +138,7 @@ theorem R2_S_inverse: forall {m n: NatTerm},
     apply H
 
 
-theorem R2_eval1: forall (m: NatTerm), m.R2 m.eval1 := by
+theorem NatTerm.R2.eval1: forall (m: NatTerm), m.R2 m.eval1 := by
   intros m
   induction m with
   | Z =>
@@ -156,7 +156,7 @@ theorem R2_eval1: forall (m: NatTerm), m.R2 m.eval1 := by
     case S m' =>
       simp
       unfold NatTerm.eval1 at IHm
-      have H2 := R2_S_inverse IHm
+      have H2 := NatTerm.R2.S_inverse IHm
       apply NatTerm.R2.SPlus H2 IHn
     case Plus m1 m2 =>
       simp
@@ -173,7 +173,7 @@ theorem R2_eval1: forall (m: NatTerm), m.R2 m.eval1 := by
     case S m' =>
       simp
       unfold NatTerm.eval1 at IHm
-      have H2 := R2_S_inverse IHm
+      have H2 := NatTerm.R2.S_inverse IHm
       apply NatTerm.R2.SMult H2 IHn
     case Plus m1 m2 =>
       simp
@@ -183,10 +183,10 @@ theorem R2_eval1: forall (m: NatTerm), m.R2 m.eval1 := by
       apply NatTerm.R2.MultCong IHm IHn
 
 
-theorem R2_mn_R2_nm_eval1: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := by
+theorem NatTerm.R2.eval1_left: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := by
   intros m n r
   induction r with
-  | Refl => apply R2_eval1
+  | Refl => apply NatTerm.R2.eval1
   | SCong r' IHr' =>
     unfold NatTerm.eval1
     apply NatTerm.R2.SCong IHr'
@@ -201,12 +201,12 @@ theorem R2_mn_R2_nm_eval1: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := by
       case Refl =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
-        have IHr1 := R2_S_inverse IHr1
+        have IHr1 := NatTerm.R2.S_inverse IHr1
         apply NatTerm.R2.SPlus IHr1 IHr2
       case SCong t H =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
-        have IHr1 := R2_S_inverse IHr1
+        have IHr1 := NatTerm.R2.S_inverse IHr1
         apply NatTerm.R2.SPlus IHr1 IHr2
     case Plus t1 t2 =>
       unfold NatTerm.eval1; simp
@@ -227,12 +227,12 @@ theorem R2_mn_R2_nm_eval1: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := by
       case Refl =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
-        have IHr1 := R2_S_inverse IHr1
+        have IHr1 := NatTerm.R2.S_inverse IHr1
         apply NatTerm.R2.SMult IHr1 IHr2
       case SCong t H =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
-        have IHr1 := R2_S_inverse IHr1
+        have IHr1 := NatTerm.R2.S_inverse IHr1
         apply NatTerm.R2.SMult IHr1 IHr2
     case Plus t1 t2 =>
       unfold NatTerm.eval1; simp
@@ -358,9 +358,8 @@ instance: KeepCong NatTerm.R2 NatTerm.MR1 where
 theorem NatTerm.R2.eval1_cong:
   forall {a b: NatTerm}, a.R2 b -> a.eval1.R2 b.eval1 := by
     intros a b H
-    apply R2_mn_R2_nm_eval1
-    apply R2_mn_R2_nm_eval1
-    apply H
+    apply NatTerm.R2.eval1_left
+    apply H.eval1_left
 
 
 theorem NatTerm.MR1.eval1_cong:
@@ -380,7 +379,7 @@ instance NatTerm.R1.semi_confluence: SemiConfluent NatTerm.R1 where
       apply NatTerm.MR1.trans (b := m1.eval1)
       . /- m2.MR1 m1.eval1 -/
         apply NatTerm.R2.inclusion
-        apply R2_mn_R2_nm_eval1
+        apply NatTerm.R2.eval1_left
         apply NatTerm.R1.inclusion
         exact H12
       . /- m1.eval1.MR1 m3.eval1 -/
@@ -388,7 +387,7 @@ instance NatTerm.R1.semi_confluence: SemiConfluent NatTerm.R1 where
         exact H13
     . /- m3.MR1 m3.eval1 -/
       apply NatTerm.R2.inclusion
-      apply R2_eval1
+      apply NatTerm.R2.eval1
 
 
 def NatTerm.R1_normal (n: NatTerm) := Not (exists m, n.R1 m)
