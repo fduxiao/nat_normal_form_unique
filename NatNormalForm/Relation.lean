@@ -849,5 +849,25 @@ instance Relation.semi_confl_to_confl {A: Type} (P: Relation A)
 instance Relation.confl_to_ChRo {A: Type} (P: Relation A)
   [inst: Confluent P]: ChurchRosser P where
   church_rosser := by
-    intros m2 m3
-    admit
+    intros m2 m3 H
+    induction H with
+    | @inclusion a b Hab =>
+      apply inst.confl
+      . apply RTCl.refl
+      . apply P.inclusion Hab
+    | @refl x =>
+      exists x
+      apply And.intro
+      . apply RTCl.refl
+      . apply RTCl.refl
+    | @trans a b c Hab Hbc IHab IHbc =>
+      let ⟨x, ⟨Hax, Hbx⟩⟩ := IHab
+      let ⟨y, ⟨Hby, Hcy⟩⟩ := IHbc
+      let ⟨m4, ⟨Hxm4, Hym4⟩⟩ := inst.confl Hbx Hby
+      exists m4
+      apply And.intro
+      . apply RTCl.trans Hax Hxm4
+      . apply RTCl.trans Hcy Hym4
+    | @symm a b Hab IHab =>
+      let ⟨m4, ⟨H1, H2⟩⟩ := IHab
+      exists m4
