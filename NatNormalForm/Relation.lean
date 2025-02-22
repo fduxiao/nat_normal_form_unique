@@ -718,6 +718,32 @@ instance {A: Type} {P: Relation A}: SubRel (RTCl P) (ECl P) where
       apply ECl.trans (b := b) IHr1 IHr2
 
 
+instance {A} {P: Relation A}: Reflexive (ECl P) where
+  refl := ECl.refl
+
+
+instance {A} {P: Relation A}: Transitive (ECl P) where
+  trans := ECl.trans
+
+
+instance {A} {P: Relation A}: Symmetric (ECl P) where
+  symm := ECl.symm
+
+
+instance {A} {P: Relation A}: KeepCong P (ECl P) where
+  keep_cong := by
+    intros f HP a b HC
+    induction HC with
+    | @inclusion a b H =>
+      apply ECl.inclusion (HP H)
+    | @refl =>
+      apply ECl.refl
+    | @trans a b c Hab Hac IHab IHac =>
+      apply ECl.trans IHab IHac
+    | @symm a b Hab IHab =>
+      apply ECl.symm IHab
+
+
 /-!
 Similarly, we inspect the equivalence between different closures.
 -/
@@ -760,3 +786,68 @@ theorem ecl2_eq_ecl: @ECl2 = @ECl := by
   intros A
   let E := @cl_op_unique A EPred ECl2 ECl ecl2_cl_op ecl_cl_op
   apply E
+
+
+
+/-!
+# Uniqueness of reduction
+-/
+
+class SemiConfluent {A: Type} (P: Relation A) where
+  semi_confl: forall {m1 m2 m3: A}, P m1 m2 -> RTCl P m1 m3 -> exists m4, RTCl P m2 m4 /\ RTCl P m3 m4
+
+
+def Relation.semi_confl {A: Type} (P: Relation A) [inst: SemiConfluent P]
+  {m1 m2 m3: A} := inst.semi_confl (m1 := m1) (m2 := m2) (m3 := m3)
+
+
+class Confluent {A: Type} (P: Relation A) where
+  confl: forall {m1 m2 m3: A},
+    RTCl P m1 m2 -> RTCl P m1 m3 -> exists m4, RTCl P m2 m4 /\ RTCl P m3 m4
+
+
+def Relation.confl {A: Type} (P: Relation A) [inst: Confluent P]
+  {m1 m2 m3: A} := inst.confl (m1 := m1) (m2 := m2) (m3 := m3)
+
+
+class ChurchRosser {A: Type} (P: Relation A) where
+  church_rosser: forall {m2 m3: A},
+    ECl P m2 m3 -> exists m4, RTCl P m2 m4 /\ RTCl P m3 m4
+
+def Relation.church_rosser {A: Type} (P: Relation A) [inst: ChurchRosser P]
+  {m2 m3: A} := inst.church_rosser (m2 := m2) (m3 := m3)
+
+
+instance Relation.semi_confl_to_confl {A: Type} (P: Relation A)
+  [inst: SemiConfluent P]: Confluent P where
+  confl := by
+    intros m1 m2 m3
+    intros H12
+    revert m3
+    induction H12 with
+    | @inclusion a b r =>
+      intros m3 H13
+      apply inst.semi_confl
+      . apply r
+      . apply H13
+    | @refl x =>
+      intros m3 H13
+      exists m3
+      apply And.intro
+      . apply H13
+      . apply RTCl.refl
+    | @trans a b c r1 r2 IHr1 IHr2 =>
+      intros m3 H13
+      let ⟨x, ⟨Hbx, Hm3x⟩⟩ := IHr1 H13
+      let ⟨m4, ⟨Hcm4, Hxm4⟩⟩ := IHr2 Hbx
+      exists m4
+      apply And.intro
+      . apply Hcm4
+      . apply RTCl.trans Hm3x Hxm4
+
+
+instance Relation.confl_to_ChRo {A: Type} (P: Relation A)
+  [inst: Confluent P]: ChurchRosser P where
+  church_rosser := by
+    intros m2 m3
+    admit

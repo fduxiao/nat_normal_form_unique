@@ -83,6 +83,13 @@ theorem NatTerm.R1.irrefl: forall {n: NatTerm}, Not (n.R1 n) := by
       apply H'
 
 
+theorem NatTerm.R1.S_inverse {m n: NatTerm}: m.S.R1 n.S -> m.R1 n := by
+  intros H
+  cases H with
+  | SCong H' =>
+    apply H'
+
+
 inductive NatTerm.R2: Relation NatTerm where
   | Refl {x}: NatTerm.R2 x x
   -- congruence
@@ -364,51 +371,24 @@ theorem NatTerm.MR1.eval1_cong:
     . apply H
 
 
-theorem NatTerm.R1.semi_confluence: forall {m1 m2 m3: NatTerm},
-  m1.R1 m2 -> m1.MR1 m3 -> exists m4, m2.MR1 m4 /\ m3.MR1 m4 := by
-  intros m1 m2 m3 H12 H13
-  exists m3.eval1
-  apply And.intro
-  . /- m2.MR1 m3.eval1 -/
-    apply NatTerm.MR1.trans (b := m1.eval1)
-    . /- m2.MR1 m1.eval1 -/
+instance NatTerm.R1.semi_confluence: SemiConfluent NatTerm.R1 where
+  semi_confl := by
+    intros m1 m2 m3 H12 H13
+    exists m3.eval1
+    apply And.intro
+    . /- m2.MR1 m3.eval1 -/
+      apply NatTerm.MR1.trans (b := m1.eval1)
+      . /- m2.MR1 m1.eval1 -/
+        apply NatTerm.R2.inclusion
+        apply R2_mn_R2_nm_eval1
+        apply NatTerm.R1.inclusion
+        exact H12
+      . /- m1.eval1.MR1 m3.eval1 -/
+        apply NatTerm.MR1.eval1_cong
+        exact H13
+    . /- m3.MR1 m3.eval1 -/
       apply NatTerm.R2.inclusion
-      apply R2_mn_R2_nm_eval1
-      apply NatTerm.R1.inclusion
-      exact H12
-    . /- m1.eval1.MR1 m3.eval1 -/
-      apply NatTerm.MR1.eval1_cong
-      exact H13
-  . /- m3.MR1 m3.eval1 -/
-    apply NatTerm.R2.inclusion
-    apply R2_eval1
-
-
-theorem NatTerm.R1.confluence: forall {m1 m2 m3: NatTerm},
-  m1.MR1 m2 -> m1.MR1 m3 -> exists m4, m2.MR1 m4 /\ m3.MR1 m4 := by
-  intros m1 m2 m3
-  intros H12
-  revert m3
-  induction H12 with
-  | @inclusion a b r =>
-    intros m3 H13
-    apply NatTerm.R1.semi_confluence
-    . apply r
-    . apply H13
-  | @refl x =>
-    intros m3 H13
-    exists m3
-    apply And.intro
-    . apply H13
-    . apply NatTerm.MR1.refl
-  | @trans a b c r1 r2 IHr1 IHr2 =>
-    intros m3 H13
-    let ⟨x, ⟨Hbx, Hm3x⟩⟩ := IHr1 H13
-    let ⟨m4, ⟨Hcm4, Hxm4⟩⟩ := IHr2 Hbx
-    exists m4
-    apply And.intro
-    . apply Hcm4
-    . apply NatTerm.MR1.trans Hm3x Hxm4
+      apply R2_eval1
 
 
 def NatTerm.R1_normal (n: NatTerm) := Not (exists m, n.R1 m)
@@ -450,9 +430,70 @@ theorem NatTerm.R1_normal_unique {n m1 m2: NatTerm}:
   (n.MR1 m1) -> (n.MR1 m2) ->
   (m1 = m2) := by
     intros N1 N2 r1 r2
-    have ⟨m4, ⟨H14, H24 ⟩⟩ := NatTerm.R1.confluence r1 r2
+    have ⟨m4, ⟨H14, H24 ⟩⟩ := NatTerm.R1.confl r1 r2
     have E1 := N1.MR1_normal H14
     have E2 := N2.MR1_normal H24
     rewrite [E1]
     rewrite [E2]
     eq_refl
+
+
+
+theorem NatTerm.Eq1.SCong {m n: NatTerm} (r: m.Eq1 n) : m.S.Eq1 n.S := by
+  apply NatTerm.R1.keep_cong NatTerm.S
+  . apply NatTerm.R1.SCong
+  . apply r
+
+
+theorem NatTerm.Eq1.PlusCong {m1 m2 n1 n2: NatTerm}
+  (r1: m1.Eq1 m2) (r2: n1.Eq1 n2): (m1 + n1).Eq1 (m2 + n2) := by
+  apply NatTerm.Eq1.trans (b := m1 + n2)
+  . /- (m1 + n1).MR1 (m1 + n2) -/
+    apply NatTerm.R1.keep_cong
+    . apply NatTerm.R1.PlusCong2
+    . apply r2
+  . /- (m1 + n2).MR1 (m2 + n2) -/
+    apply NatTerm.R1.keep_cong (fun x => x + n2)
+    . intros a b H
+      apply NatTerm.R1.PlusCong1 H
+    . apply r1
+
+
+theorem NatTerm.Eq1.MultCong {m1 m2 n1 n2: NatTerm}
+  (r1: m1.Eq1 m2) (r2: n1.Eq1 n2): (m1 * n1).Eq1 (m2 * n2) := by
+  apply NatTerm.Eq1.trans (b := m1 * n2)
+  . /- (m1 * n1).MR1 (m1 * n2) -/
+    apply NatTerm.R1.keep_cong
+    . apply NatTerm.R1.MultCong2
+    . apply r2
+  . /- (m1 * n2).MR1 (m2 * n2) -/
+    apply NatTerm.R1.keep_cong (fun x => x * n2)
+    . intros a b H
+      apply NatTerm.R1.MultCong1 H
+    . apply r1
+
+
+instance: KeepCong NatTerm.MR1 NatTerm.Eq1 where
+  keep_cong := by
+    intros f HC a b H
+    induction H with
+    | @inclusion a b r =>
+      apply NatTerm.MR1.inclusion
+      apply HC
+      apply NatTerm.R1.inclusion
+      exact r
+    | @refl x =>
+      apply NatTerm.Eq1.refl
+    | @trans a b c Hab Hac IHab IHac =>
+      apply IHab.trans IHac
+    | @symm a b Hab IHab =>
+      apply NatTerm.Eq1.symm
+      exact IHab
+
+
+theorem NatTerm.Eq1.eval1_cong {m n: NatTerm}:
+  m.Eq1 n -> m.eval1.Eq1 n.eval1 := by
+    intros H
+    apply NatTerm.MR1.keep_cong
+    . apply NatTerm.MR1.eval1_cong
+    . apply H

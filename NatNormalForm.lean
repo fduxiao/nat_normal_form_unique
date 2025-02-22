@@ -3,3 +3,4 @@
 import NatNormalForm.Basic
 import NatNormalForm.Relation
 import NatNormalForm.Term
+import NatNormalForm.Equations
