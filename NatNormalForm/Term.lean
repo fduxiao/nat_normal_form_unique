@@ -437,6 +437,149 @@ theorem NatTerm.R1_normal_unique {n m1 m2: NatTerm}:
     eq_refl
 
 
+theorem NatTerm.R1_normal.S_normal_inverse {n: NatTerm}:
+  n.S.R1_normal -> n.R1_normal := by
+  intros H
+  intros contra
+  let ⟨x, Hx⟩ := contra
+  apply H
+  exists x.S
+  apply NatTerm.R1.SCong
+  exact Hx
+
+
+theorem NatTerm.R1_normal.not_sum_prod {m n: NatTerm}:
+  (exists p, (m + n).R1 p) /\ (exists q, (m * n).R1 q) := by
+  revert n
+  induction m with
+  | Z =>
+    intros n
+    apply And.intro
+    . exists n
+      apply NatTerm.R1.ZPlus
+    . exists 0
+      apply NatTerm.R1.ZMult
+  | S m' IHm' =>
+    intros n
+    apply And.intro
+    . exists (m' + n).S
+      apply NatTerm.R1.SPlus
+    . exists (m' * n + n)
+      apply NatTerm.R1.SMult
+  | Plus m1 m2 IHm1 IHm2 =>
+    intros n
+    let ⟨⟨p, Hp⟩, _⟩ := @IHm1 m2
+    apply And.intro
+    .
+      exists p + n
+      apply NatTerm.R1.PlusCong1
+      exact Hp
+    . exists p * n
+      apply NatTerm.R1.MultCong1
+      exact Hp
+  | Mult m1 m2 IHm1 IHm2 =>
+    intros n
+    let ⟨_, ⟨q, Hq⟩⟩ := @IHm1 m2
+    apply And.intro
+    . exists q + n
+      apply NatTerm.R1.PlusCong1
+      exact Hq
+    . exists q * n
+      apply NatTerm.R1.MultCong1
+      exact Hq
+
+
+def NatTerm.R1_normal.not_sum {m n} := (@NatTerm.R1_normal.not_sum_prod m n).left
+def NatTerm.R1_normal.not_prod {m n} := (@NatTerm.R1_normal.not_sum_prod m n).right
+
+
+inductive NatTerm.normal: NatTerm -> Prop where
+  | Z_normal: Z.normal
+  | S_normal {n: NatTerm}: n.normal -> n.S.normal
+
+
+theorem NatTerm.normal.R1 {n: NatTerm}:
+  n.normal -> n.R1_normal := by
+  intros H
+  induction H with
+  | Z_normal =>
+    intro contra
+    let ⟨x, Hx⟩ := contra
+    cases Hx
+  | @S_normal n Hn IHn =>
+    intro contra
+    let ⟨x, Hx⟩ := contra
+    cases Hx
+    case SCong m H =>
+      apply IHn
+      exists m
+
+
+theorem NatTerm.R1_normal.normal {n: NatTerm}:
+  n.R1_normal -> n.normal := by
+  intros H
+  induction n with
+  | Z =>
+    apply NatTerm.normal.Z_normal
+  | S m IHm =>
+    apply NatTerm.normal.S_normal
+    apply IHm
+    apply H.S_normal_inverse
+  | Plus n1 n2 IHn1 IHn2 =>
+    exfalso
+    apply H
+    apply NatTerm.R1_normal.not_sum
+  | Mult n1 n2 IHn1 IHn2 =>
+    exfalso
+    apply H
+    apply NatTerm.R1_normal.not_prod
+
+
+def NatTerm.is_normal_b (n: NatTerm): Bool := match n with
+  | Z => .true
+  | S n' => n'.is_normal_b
+  | _ => .false
+
+
+theorem NatTerm.normal.decide {n: NatTerm}:
+  n.is_normal_b <-> n.normal := by
+  apply Iff.intro
+  . /- -> -/
+    intros H
+    induction n with
+    | Z =>
+      apply NatTerm.normal.Z_normal
+    | S n' IHn' =>
+      apply NatTerm.normal.S_normal
+      apply IHn'
+      apply H
+    | Plus n1 n2 =>
+      cases H
+    | Mult n1 n2 =>
+      cases H
+  . /- <- -/
+    intros H
+    induction H with
+    | Z_normal =>
+      simp [is_normal_b]
+    | @S_normal n Hn IHn =>
+      simp [is_normal_b]
+      apply IHn
+
+
+instance: DecidablePred NatTerm.normal := fun n => by
+  generalize E: n.is_normal_b = t
+  match t with
+  | true =>
+    apply Decidable.isTrue
+    apply NatTerm.normal.decide.mp E
+  | false =>
+    apply Decidable.isFalse
+    intros contra
+    have H2 := NatTerm.normal.decide.mpr contra
+    rewrite [H2] at E
+    contradiction
+
 
 theorem NatTerm.Eq1.SCong {m n: NatTerm} (r: m.Eq1 n) : m.S.Eq1 n.S := by
   apply NatTerm.R1.keep_cong NatTerm.S
