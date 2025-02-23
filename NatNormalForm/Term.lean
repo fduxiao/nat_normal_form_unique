@@ -266,6 +266,26 @@ abbrev NatTerm.MR1 := RTCl NatTerm.R1
 abbrev NatTerm.Eq1 := ECl NatTerm.R1
 
 
+theorem NatTerm.MR1.ZPlus {n: NatTerm}: (Z + n).MR1 n := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.ZPlus
+
+
+theorem NatTerm.MR1.SPlus {m n: NatTerm}: (m.S + n).MR1 (m + n).S := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.SPlus
+
+
+theorem NatTerm.MR1.ZMult {n: NatTerm}: (Z * n).MR1 0 := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.ZMult
+
+
+theorem NatTerm.MR1.SMult {m n: NatTerm}: (m.S * n).MR1 (m * n + n) := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.SMult
+
+
 theorem NatTerm.MR1.SCong {m n: NatTerm} (r: m.MR1 n) : m.S.MR1 n.S := by
   apply NatTerm.R1.keep_cong NatTerm.S
   . apply NatTerm.R1.SCong
@@ -286,6 +306,20 @@ theorem NatTerm.MR1.PlusCong {m1 m2 n1 n2: NatTerm}
     . apply r1
 
 
+theorem NatTerm.MR1.PlusCong1 {m n1 n2: NatTerm}
+  (r: n1.MR1 n2): (m + n1).MR1 (m + n2) := by
+    apply NatTerm.MR1.PlusCong
+    . apply NatTerm.MR1.refl
+    . exact r
+
+
+theorem NatTerm.MR1.PlusCong2 {m1 m2 n: NatTerm}
+  (r: m1.MR1 m2): (m1 + n).MR1 (m2 + n) := by
+    apply NatTerm.MR1.PlusCong
+    . exact r
+    . apply NatTerm.MR1.refl
+
+
 theorem NatTerm.MR1.MultCong {m1 m2 n1 n2: NatTerm}
   (r1: m1.MR1 m2) (r2: n1.MR1 n2): (m1 * n1).MR1 (m2 * n2) := by
   apply NatTerm.MR1.trans (b := m1 * n2)
@@ -298,6 +332,19 @@ theorem NatTerm.MR1.MultCong {m1 m2 n1 n2: NatTerm}
     . intros a b H
       apply NatTerm.R1.MultCong1 H
     . apply r1
+
+
+theorem NatTerm.MR1.MultCong1 {m n1 n2: NatTerm}
+  (r: n1.MR1 n2): (m * n1).MR1 (m * n2) := by
+    apply NatTerm.MR1.MultCong
+    . apply NatTerm.MR1.refl
+    . exact r
+
+theorem NatTerm.MR1.MultCong2 {m1 m2 n: NatTerm}
+  (r: m1.MR1 m2): (m1 * n).MR1 (m2 * n) := by
+    apply NatTerm.MR1.MultCong
+    . exact r
+    . apply NatTerm.MR1.refl
 
 
 instance R2_sub_MR1: NatTerm.R2 sub_rel NatTerm.MR1 where
@@ -388,6 +435,26 @@ instance NatTerm.R1.semi_confluence: SemiConfluent NatTerm.R1 where
     . /- m3.MR1 m3.eval1 -/
       apply NatTerm.R2.inclusion
       apply NatTerm.R2.eval1
+
+
+theorem NatTerm.Eq1.ZPlus {n: NatTerm}: (Z + n).Eq1 n := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.ZPlus
+
+
+theorem NatTerm.Eq1.SPlus {m n: NatTerm}: (m.S + n).Eq1 (m + n).S := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.SPlus
+
+
+theorem NatTerm.Eq1.ZMult {n: NatTerm}: (Z * n).Eq1 0 := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.ZMult
+
+
+theorem NatTerm.Eq1.SMult {m n: NatTerm}: (m.S * n).Eq1 (m * n + n) := by
+  apply NatTerm.R1.inclusion
+  apply NatTerm.R1.SMult
 
 
 theorem NatTerm.Eq1.SCong {m n: NatTerm} (r: m.Eq1 n) : m.S.Eq1 n.S := by

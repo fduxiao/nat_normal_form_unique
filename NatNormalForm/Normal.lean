@@ -105,19 +105,19 @@ def NatTerm.R1_normal.not_prod {m n} := (@NatTerm.R1_normal.not_sum_prod m n).ri
 
 
 inductive NatTerm.normal: NatTerm -> Prop where
-  | Z_normal: Z.normal
-  | S_normal {n: NatTerm}: n.normal -> n.S.normal
+  | ZNormal: Z.normal
+  | SNormal {n: NatTerm}: n.normal -> n.S.normal
 
 
 theorem NatTerm.normal.R1 {n: NatTerm}:
   n.normal -> n.R1_normal := by
   intros H
   induction H with
-  | Z_normal =>
+  | ZNormal =>
     intro contra
     let ⟨x, Hx⟩ := contra
     cases Hx
-  | @S_normal n Hn IHn =>
+  | @SNormal n Hn IHn =>
     intro contra
     let ⟨x, Hx⟩ := contra
     cases Hx
@@ -131,9 +131,9 @@ theorem NatTerm.R1_normal.normal {n: NatTerm}:
   intros H
   induction n with
   | Z =>
-    apply NatTerm.normal.Z_normal
+    apply NatTerm.normal.ZNormal
   | S m IHm =>
-    apply NatTerm.normal.S_normal
+    apply NatTerm.normal.SNormal
     apply IHm
     apply H.S_normal_inverse
   | Plus n1 n2 IHn1 IHn2 =>
@@ -144,6 +144,16 @@ theorem NatTerm.R1_normal.normal {n: NatTerm}:
     exfalso
     apply H
     apply NatTerm.R1_normal.not_prod
+
+
+theorem NatTerm.normal.not_sum {P: Prop} {m n: NatTerm}
+  (H: (m + n).normal): P := by
+    cases H.R1 NatTerm.R1_normal.not_sum
+
+
+theorem NatTerm.normal.not_prod {P: Prop} {m n: NatTerm}
+  (H: (m * n).normal): P := by
+    cases H.R1 NatTerm.R1_normal.not_prod
 
 
 def NatTerm.is_normal_b (n: NatTerm): Bool := match n with
@@ -159,9 +169,9 @@ theorem NatTerm.normal.decide {n: NatTerm}:
     intros H
     induction n with
     | Z =>
-      apply NatTerm.normal.Z_normal
+      apply NatTerm.normal.ZNormal
     | S n' IHn' =>
-      apply NatTerm.normal.S_normal
+      apply NatTerm.normal.SNormal
       apply IHn'
       apply H
     | Plus n1 n2 =>
@@ -171,9 +181,9 @@ theorem NatTerm.normal.decide {n: NatTerm}:
   . /- <- -/
     intros H
     induction H with
-    | Z_normal =>
+    | ZNormal =>
       simp [is_normal_b]
-    | @S_normal n Hn IHn =>
+    | @SNormal n Hn IHn =>
       simp [is_normal_b]
       apply IHn
 
@@ -190,3 +200,264 @@ instance: DecidablePred NatTerm.normal := fun n => by
     have H2 := NatTerm.normal.decide.mpr contra
     rewrite [H2] at E
     contradiction
+
+
+
+def NatTerm.plus (m n: NatTerm): NatTerm :=
+  match m with
+  | .Z => n
+  | .S m' => (m'.plus n).S
+  | o => o + n
+
+
+theorem NatTerm.MR1.plus_cong1 {m n1 n2: NatTerm}
+  (r: n1.MR1 n2): (m.Plus n1).MR1 (m.plus n2) := by
+    induction m with
+    | Z =>
+      simp [plus]
+      apply NatTerm.MR1.trans
+      . apply NatTerm.MR1.ZPlus
+      . exact r
+    | S m' IHm' =>
+      simp [plus]
+      apply NatTerm.MR1.trans
+      . apply NatTerm.MR1.SPlus
+      . apply NatTerm.MR1.SCong
+        exact IHm'
+    | Plus m1 m2 IHm1 IHm2 =>
+      simp [plus]
+      apply NatTerm.MR1.PlusCong1
+      exact r
+    | Mult =>
+      simp [plus]
+      apply NatTerm.MR1.PlusCong1
+      exact r
+
+
+theorem NatTerm.MR1.plus_cong2 {m1 m2 n: NatTerm}
+  (r: m1.MR1 m2): (m1.Plus n).MR1 (m2.plus n) := by
+    revert r m1
+    induction m2 with
+    | Z =>
+      intros m1 r
+      simp [plus]
+      apply NatTerm.MR1.trans (b := Z + n)
+      . apply NatTerm.MR1.PlusCong
+        . exact r
+        . apply NatTerm.MR1.refl
+      . apply NatTerm.MR1.ZPlus
+    | S m' IHm' =>
+      intros m1 r
+      simp [plus]
+      apply NatTerm.MR1.trans (b := m'.S + n)
+      . apply NatTerm.MR1.PlusCong2
+        exact r
+      . apply NatTerm.MR1.trans
+        . apply NatTerm.MR1.SPlus
+        . apply NatTerm.MR1.SCong
+          apply IHm'
+          apply NatTerm.MR1.refl
+    | Plus m1 m2 IHm1 IHm2 =>
+      intros m1 r
+      simp [plus]
+      apply NatTerm.MR1.PlusCong2
+      exact r
+    | Mult =>
+      intros m1 r
+      simp [plus]
+      apply NatTerm.MR1.PlusCong2
+      exact r
+
+theorem NatTerm.MR1.plus_cong {m1 m2: NatTerm}: forall {n1 n2: NatTerm},
+  m1.MR1 m2 -> n1.MR1 n2 -> (m1.Plus n1).MR1 (m2.plus n2) := by
+    cases m2 with
+    | Z =>
+      intros n1 n2 r1 r2
+      simp [plus]
+      apply NatTerm.MR1.trans (b := 0 + n1)
+      . apply NatTerm.MR1.PlusCong2
+        exact r1
+      . apply NatTerm.MR1.trans
+        . apply NatTerm.MR1.ZPlus
+        . exact r2
+    | S m =>
+      intros n1 n2 r1 r2
+      simp [plus]
+      apply NatTerm.MR1.trans (b := m.S + n2)
+      . apply NatTerm.MR1.PlusCong
+        . exact r1
+        . exact r2
+      . apply NatTerm.MR1.trans
+        . apply NatTerm.MR1.SPlus
+        . apply NatTerm.MR1.SCong
+          apply NatTerm.MR1.plus_cong1
+          apply NatTerm.MR1.refl
+    | Plus =>
+      simp [plus]
+      intros n1 n2 r1 r2
+      . apply NatTerm.MR1.PlusCong
+        . exact r1
+        . exact r2
+    | Mult =>
+      simp [plus]
+      intros n1 n2 r1 r2
+      . apply NatTerm.MR1.PlusCong
+        . exact r1
+        . exact r2
+
+
+def NatTerm.mult (m n: NatTerm): NatTerm :=
+  match m with
+  | .Z => .Z
+  | .S m' => (m'.mult n).plus n
+  | o => o * n
+
+
+theorem NatTerm.MR1.mult_cong1 {m n1 n2: NatTerm}
+  (r: n1.MR1 n2): (m.Mult n1).MR1 (m.mult n2) := by
+    induction m with
+    | Z =>
+      simp [mult]
+      apply NatTerm.MR1.ZMult
+    | S m' IHm' =>
+      simp [mult]
+      apply NatTerm.MR1.trans
+      . apply NatTerm.MR1.SMult
+      . apply NatTerm.MR1.plus_cong
+        . exact IHm'
+        . exact r
+    | Plus m1 m2 IHm1 IHm2 =>
+      simp [mult]
+      apply NatTerm.MR1.MultCong1
+      exact r
+    | Mult =>
+      simp [mult]
+      apply NatTerm.MR1.MultCong1
+      exact r
+
+
+theorem NatTerm.MR1.mult_cong {m1 m2: NatTerm}: forall {n1 n2: NatTerm},
+  m1.MR1 m2 -> n1.MR1 n2 -> (m1.Mult n1).MR1 (m2.mult n2) := by
+    cases m2 with
+    | Z =>
+      intros n1 n2 r1 r2
+      simp [mult]
+      apply NatTerm.MR1.trans (b := 0 * n1)
+      . apply NatTerm.MR1.MultCong2
+        exact r1
+      . apply NatTerm.MR1.ZMult
+    | S m =>
+      intros n1 n2 r1 r2
+      simp [mult]
+      apply NatTerm.MR1.trans (b := m * n1 + n1)
+      . apply NatTerm.MR1.trans (b := m.S * n1)
+        . apply NatTerm.MR1.MultCong2
+          exact r1
+        . apply NatTerm.MR1.SMult
+      . apply NatTerm.MR1.plus_cong
+        . apply NatTerm.MR1.mult_cong1
+          exact r2
+        . exact r2
+    | Plus t1 t2 =>
+      simp [mult]
+      intros n1 n2 r1 r2
+      . apply NatTerm.MR1.MultCong
+        . exact r1
+        . exact r2
+    | Mult t1 t2 =>
+      simp [mult]
+      intros n1 n2 r1 r2
+      . apply NatTerm.MR1.MultCong
+        . exact r1
+        . exact r2
+
+
+def NatTerm.normalize (m: NatTerm): NatTerm :=
+  match m with
+  | .Z => .Z
+  | .S m' => m'.normalize.S
+  | .Plus m1 m2 => m1.normalize.plus m2.normalize
+  | .Mult m1 m2 => m1.normalize.mult m2.normalize
+
+
+theorem NatTerm.MR1_normalize {n: NatTerm}:
+  n.MR1 n.normalize := by
+  induction n with
+  | Z =>
+    simp [normalize]
+    apply NatTerm.MR1.refl
+  | S n' IHm' =>
+    simp [normalize]
+    apply NatTerm.MR1.SCong
+    assumption
+  | Plus n1 n2 IHn1 IHn2 =>
+    simp [normalize]
+    apply NatTerm.MR1.plus_cong
+    . exact IHn1
+    . exact IHn2
+  | Mult n1 n2 IHn1 IHn2 =>
+    simp [normalize]
+    apply NatTerm.MR1.mult_cong
+    . exact IHn1
+    . exact IHn2
+
+
+theorem NatTerm.normal.sum {m n: NatTerm}:
+  m.normal -> n.normal -> (m.plus n).normal := by
+  intro Hm Hn
+  induction m with
+  | Z =>
+    simp [plus]
+    apply Hn
+  | S m' IHm' =>
+    simp [plus]
+    apply NatTerm.normal.SNormal
+    apply IHm'
+    cases Hm
+    assumption
+  | Plus =>
+    apply Hm.not_sum
+  | Mult =>
+    apply Hm.not_prod
+
+
+theorem NatTerm.normal.prod {m n: NatTerm}:
+  m.normal -> n.normal -> (m.mult n).normal := by
+  intros Hm Hn
+  induction m with
+  | Z =>
+    simp [mult]
+    apply NatTerm.normal.ZNormal
+  | S m' IHm' =>
+    simp [mult]
+    apply NatTerm.normal.sum
+    . apply IHm'
+      cases Hm
+      assumption
+    . exact Hn
+  | Plus =>
+    apply Hm.not_sum
+  | Mult =>
+    apply Hm.not_prod
+
+
+theorem NatTerm.normalize_normal {n: NatTerm}:
+  n.normalize.normal := by
+    induction n with
+    | Z =>
+      simp [normalize]
+      apply NatTerm.normal.ZNormal
+    | S n' IHn' =>
+      simp [normalize]
+      apply NatTerm.normal.SNormal
+      assumption
+    | Plus n1 n2 IHn1 IHn2 =>
+      simp [normalize]
+      apply NatTerm.normal.sum
+      . assumption
+      . assumption
+    | Mult n1 n2 IHn1 IHn2 =>
+      simp [normalize]
+      apply NatTerm.normal.prod
+      . assumption
+      . assumption
