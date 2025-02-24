@@ -461,3 +461,139 @@ theorem NatTerm.normalize_normal {n: NatTerm}:
       apply NatTerm.normal.prod
       . assumption
       . assumption
+
+
+theorem RTCl.split {m n: NatTerm}:
+  m.MR1 n -> m = n \/ exists k, m.R1 k /\ k.MR1 n := by
+    intros H
+    induction H with
+    | @inclusion a b r =>
+      right
+      exists b
+      apply And.intro
+      . exact r
+      . exact NatTerm.MR1.refl
+    | @refl x =>
+      left
+      eq_refl
+    | @trans a b c Hab Hbc IHab IHbc =>
+      cases IHab with
+      | inl Eab => /- a = b -/
+        cases IHbc with
+        | inl Ebc => /- b = c -/
+          left
+          rewrite [Eab]
+          exact Ebc
+        | inr H => /- b -> k -/
+          let ⟨k, Hk⟩ := H
+          right
+          exists k
+          apply And.intro
+          . rewrite [Eab]
+            apply Hk.left
+          . apply Hk.right
+      | inr H => /- a -> k -/
+        let ⟨k, Hk⟩ := H
+        right
+        exists k
+        apply And.intro
+        . exact Hk.left
+        . apply NatTerm.MR1.trans
+          . apply Hk.right
+          . apply Hbc
+
+
+theorem and3 {A B C: Prop} (a: A) (b: B) (c: C): A /\ B /\ C := by
+  apply And.intro
+  . apply a
+  . apply And.intro
+    . apply b
+    . apply c
+
+
+theorem NatTerm.MR1.S_inverse_lemma_E {m n: NatTerm}:
+  m.MR1 n ->
+  (exists p: NatTerm, m = p.S) ->
+  exists t1 t2: NatTerm, m = t1.S /\ n = t2.S /\ t1.MR1 t2 := by
+  intros H
+  induction H with
+  | @inclusion a b r =>
+    intros H
+    let ⟨x, E⟩ := H
+    rewrite [E] at r
+    cases r with
+    | @SCong n1 n2 r =>
+      exists x
+      exists n2
+      apply and3
+      . apply E
+      . eq_refl
+      . apply NatTerm.R1.inclusion
+        exact r
+  | @refl x =>
+    intros H
+    let ⟨y, E⟩ := H
+    exists y
+    exists y
+    apply and3
+    . exact E
+    . exact E
+    . apply NatTerm.MR1.refl
+  | @trans a b c Hab Hbc IHab IHbc =>
+    intros H
+    let ⟨x, E⟩ := H
+    specialize (IHab H)
+    let ⟨t1, ⟨t2, ⟨Ea, ⟨Eb, H12⟩⟩⟩⟩ := IHab
+    specialize (IHbc ⟨t2, Eb⟩)
+    let ⟨t2', ⟨t3, ⟨Eb', ⟨Ec, H23⟩⟩⟩⟩ := IHbc
+    rewrite [Eb] at Eb'
+    cases Eb'
+    exists t1
+    exists t3
+    apply and3
+    . exact Ea
+    . exact Ec
+    . apply NatTerm.MR1.trans
+      . apply H12
+      . apply H23
+
+
+theorem NatTerm.MR1.S_inverse_lemma {m n: NatTerm}:
+  m.S.MR1 n -> exists t: NatTerm, n = t.S /\ m.MR1 t := by
+    intros H
+    let E := H.S_inverse_lemma_E ⟨m, Eq.refl m.S⟩
+    let ⟨t1, ⟨t2, ⟨E1, ⟨E2, K⟩⟩⟩⟩ := E
+    cases E1
+    cases E2
+    exists t2
+
+
+theorem NatTerm.MR1.S_inverse {m n: NatTerm}:
+  m.S.MR1 n.S -> m.MR1 n := by
+    intros H
+    let E := H.S_inverse_lemma_E ⟨m, Eq.refl m.S⟩
+    let ⟨t1, ⟨t2, ⟨E1, ⟨E2, H⟩⟩⟩⟩ := E
+    cases E1
+    cases E2
+    apply H
+
+
+def NatTerm.Eq1.church_rosser {m n: NatTerm}
+  (H: m.Eq1 n): exists p: NatTerm, m.MR1 p /\ n.MR1 p
+    := NatTerm.R1.church_rosser H
+
+
+theorem NatTerm.Eq1.S_inverse {m n: NatTerm}:
+  m.S.Eq1 n.S -> m.Eq1 n := by
+    intros H
+    let ⟨p, ⟨H1, H2⟩⟩ := H.church_rosser
+    let ⟨t1, ⟨E1, K1⟩⟩ := H1.S_inverse_lemma
+    let ⟨t2, ⟨E2, K2⟩⟩ := H2.S_inverse_lemma
+    cases E1
+    cases E2
+    apply NatTerm.Eq1.trans
+    . apply NatTerm.MR1.inclusion
+      apply K1
+    . apply NatTerm.Eq1.symm
+      apply NatTerm.MR1.inclusion
+      apply K2
