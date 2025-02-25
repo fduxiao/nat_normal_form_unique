@@ -1,29 +1,82 @@
 import NatNormalForm.Term
+import NatNormalForm.Normal
 
 
-theorem NatTerm.plus_zero_eq: forall {n: NatTerm}, (n + 0).Eq1 n := by
-  intros n
-  induction n with
-  | Z =>
-    apply NatTerm.R1.inclusion
-    apply NatTerm.R1.ZPlus
-  | S n' IHn' =>
-    apply NatTerm.Eq1.trans
-    . /- (n'.S + 0).Eq1 (n' + 0).S -/
-      apply NatTerm.R1.inclusion
-      apply NatTerm.R1.SPlus
-    . /- (n' + 0).S.Eq1 n'.S -/
-      apply NatTerm.Eq1.SCong
-      apply IHn'
-  | Plus n1 n2 IHn1 IHn2 =>
-    cases n1 with
+theorem NatTerm.plus_Z_eq_normal {n: NatTerm}:
+  n.normal -> n.plus .Z = n := by
+    intros H
+    induction n with
     | Z =>
-      have H: (Z.Plus n2 + 0).Eq1 (n2 + 0) := by
-        apply NatTerm.Eq1.PlusCong (.inclusion .ZPlus) .refl
-      apply NatTerm.Eq1.trans H
-      apply NatTerm.Eq1.trans IHn2
-      apply NatTerm.Eq1.symm (.inclusion .ZPlus)
-    | S m =>
-      admit
-    | _ => admit
-  | _ => admit
+      simp [plus]
+    | S m IHm =>
+      simp [plus]
+      apply IHm
+      cases H
+      assumption
+    | Plus n1 n2 IHn1 IHn2 =>
+      apply H.not_sum
+    | Mult =>
+      apply H.not_prod
+
+
+theorem NatTerm.plus_Z_eq {n: NatTerm}: (n + 0).Eq1 n := by
+  apply NatTerm.eq_normal.mp
+  simp [normalize]
+  let E := n.normalize.plus_Z_eq_normal
+  specialize (E n.normalize_normal)
+  rewrite [E]
+  eq_refl
+
+
+theorem NatTerm.plus_S_eq_normal {m n: NatTerm}:
+  m.normal -> (m.plus n.S) = (m.plus n).S := by
+    intros Nm
+    induction m with
+    | Z =>
+      simp [plus]
+    | S m' IHm' =>
+      simp [plus]
+      apply IHm'
+      apply Nm.pred
+    | Plus =>
+      apply Nm.not_sum
+    | Mult =>
+      apply Nm.not_prod
+
+
+theorem NatTerm.plus_S_eq {m n: NatTerm}: (m + n.S).Eq1 (m + n).S := by
+  apply NatTerm.eq_normal.mp
+  simp [normalize]
+  apply NatTerm.plus_S_eq_normal
+  . apply m.normalize_normal
+
+
+theorem NatTerm.plus_comm_normal {m n: NatTerm}:
+  m.normal -> n.normal ->
+  (m.plus n) = (n.plus m) := by
+    intros Nm Nn
+    induction m with
+    | Z =>
+      simp [plus]
+      symm
+      apply n.plus_Z_eq_normal
+      apply Nn
+    | S m' IHm' =>
+      simp [plus]
+      specialize (IHm' Nm.pred)
+      rewrite [IHm']
+      symm
+      apply NatTerm.plus_S_eq_normal
+      apply Nn
+    | Plus =>
+      apply Nm.not_sum
+    | Mult =>
+      apply Nm.not_prod
+
+
+theorem NatTerm.plus_comm {m n: NatTerm}: (m + n).Eq1 (n + m) := by
+  apply NatTerm.eq_normal.mp
+  simp [normalize]
+  apply NatTerm.plus_comm_normal
+  . apply m.normalize_normal
+  . apply n.normalize_normal

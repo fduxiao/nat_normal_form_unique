@@ -109,6 +109,14 @@ inductive NatTerm.normal: NatTerm -> Prop where
   | SNormal {n: NatTerm}: n.normal -> n.S.normal
 
 
+theorem NatTerm.normal.pred {n: NatTerm}:
+  n.S.normal -> n.normal := by
+    intros H
+    cases H with
+    | SNormal H =>
+      exact H
+
+
 theorem NatTerm.normal.R1 {n: NatTerm}:
   n.normal -> n.R1_normal := by
   intros H
@@ -154,6 +162,16 @@ theorem NatTerm.normal.not_sum {P: Prop} {m n: NatTerm}
 theorem NatTerm.normal.not_prod {P: Prop} {m n: NatTerm}
   (H: (m * n).normal): P := by
     cases H.R1 NatTerm.R1_normal.not_prod
+
+
+theorem NatTerm.normal_unique {n m1 m2: NatTerm}:
+  m1.normal -> m2.normal ->
+  (n.MR1 m1) -> (n.MR1 m2) ->
+  (m1 = m2) := by
+  intros H1 H2
+  apply n.R1_normal_unique
+  . apply H1.R1
+  . apply H2.R1
 
 
 def NatTerm.is_normal_b (n: NatTerm): Bool := match n with
@@ -463,6 +481,56 @@ theorem NatTerm.normalize_normal {n: NatTerm}:
       . assumption
 
 
+theorem NatTerm.normal_normalize_eq {n: NatTerm}:
+  n.normal -> n.normalize = n := by
+    intros H
+    symm
+    apply H.R1.MR1_normal
+    apply n.MR1_normalize
+
+
+theorem NatTerm.MR1.normalize_left {m n: NatTerm}:
+  m.MR1 n -> n.MR1 m.normalize := by
+    intros H
+    have K : m.MR1 n.normalize := by
+      apply H.trans
+      apply n.MR1_normalize
+    have E: m.normalize = n.normalize := by
+      apply m.normal_unique
+      . apply m.normalize_normal
+      . apply n.normalize_normal
+      . apply m.MR1_normalize
+      . apply K
+    rewrite [E]
+    apply n.MR1_normalize
+
+
+def NatTerm.Eq1.church_rosser {m n: NatTerm}
+  (H: m.Eq1 n): exists p: NatTerm, m.MR1 p /\ n.MR1 p
+    := NatTerm.R1.church_rosser H
+
+
+theorem NatTerm.eq_normal {m n: NatTerm}:
+  m.normalize = n.normalize <-> m.Eq1 n := by
+    apply Iff.intro
+    . /- -> -/
+      intros H
+      apply NatTerm.Eq1.trans (NatTerm.MR1.inclusion m.MR1_normalize)
+      rewrite [H]
+      apply NatTerm.Eq1.symm
+      apply NatTerm.MR1.inclusion n.MR1_normalize
+    . /- <- -/
+      intros H
+      let ⟨p, ⟨Hmp, Hnp⟩⟩ := H.church_rosser
+      let Hmp := Hmp.normalize_left
+      let Hnp := Hnp.normalize_left
+      apply p.normal_unique
+      . apply m.normalize_normal
+      . apply n.normalize_normal
+      . apply Hmp
+      . apply Hnp
+
+
 theorem RTCl.split {m n: NatTerm}:
   m.MR1 n -> m = n \/ exists k, m.R1 k /\ k.MR1 n := by
     intros H
@@ -576,11 +644,6 @@ theorem NatTerm.MR1.S_inverse {m n: NatTerm}:
     cases E1
     cases E2
     apply H
-
-
-def NatTerm.Eq1.church_rosser {m n: NatTerm}
-  (H: m.Eq1 n): exists p: NatTerm, m.MR1 p /\ n.MR1 p
-    := NatTerm.R1.church_rosser H
 
 
 theorem NatTerm.Eq1.S_inverse {m n: NatTerm}:
