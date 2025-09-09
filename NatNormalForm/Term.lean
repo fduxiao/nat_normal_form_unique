@@ -90,6 +90,47 @@ theorem NatTerm.R1.S_inverse {m n: NatTerm}: m.S.R1 n.S -> m.R1 n := by
     apply H'
 
 
+theorem NatTerm.PM_reduce: forall m n: NatTerm, (exists k, (m + n).R1 k) ∧ (exists k, (m * n).R1 k) := by
+  intro m
+  induction m with (intro n)
+  | Z =>
+    apply And.intro
+    . exists n
+      constructor
+    . exists .Z
+      constructor
+  | S t IH =>
+    apply And.intro
+    . exists (t + n).S
+      constructor
+    . exists (t * n + n)
+      constructor
+  | Plus m1 m2 IH1 IH2 =>
+    let ⟨t, Ht⟩ := (IH1 m2).left
+    apply And.intro
+    . exists (t + n)
+      constructor
+      exact Ht
+    . exists (t * n)
+      constructor
+      exact Ht
+  | Mult m1 m2 IH1 IH2 =>
+    let ⟨t, Ht⟩ := (IH1 m2).right
+    apply And.intro
+    . exists (t + n)
+      constructor
+      exact Ht
+    . exists (t * n)
+      constructor
+      exact Ht
+
+theorem NatTerm.S_step_step: forall n: NatTerm, (exists p, n.S.R1 p) -> (exists q, n.R1 q) := by
+  intro n H
+  let ⟨p, Hp⟩ := H
+  cases Hp with
+  | @SCong _ t P =>
+    exists t
+
 inductive NatTerm.R2: Relation NatTerm where
   | Refl {x}: NatTerm.R2 x x
   -- congruence

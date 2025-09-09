@@ -59,6 +59,16 @@ theorem NatTerm.R1_normal.S_normal_inverse {n: NatTerm}:
   exact Hx
 
 
+theorem NatTerm.normal.S_normal {n: NatTerm}:
+  n.R1_normal -> n.S.R1_normal
+:= by
+  intros H
+  intros contra
+  apply H
+  apply NatTerm.S_step_step
+  exact contra
+
+
 theorem NatTerm.R1_normal.not_sum_prod {m n: NatTerm}:
   (exists p, (m + n).R1 p) /\ (exists q, (m * n).R1 q) := by
   revert n
