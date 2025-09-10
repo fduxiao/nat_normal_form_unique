@@ -179,7 +179,7 @@ theorem NatTerm.R2.S_inverse: forall {m n: NatTerm},
     apply H
 
 
-theorem NatTerm.R2.eval1: forall (m: NatTerm), m.R2 m.eval1 := by
+theorem NatTerm.R2.eval1: forall {m: NatTerm}, m.R2 m.eval1 := by
   intros m
   induction m with
   | Z =>
@@ -241,9 +241,7 @@ theorem NatTerm.R2.eval1_left: forall {m n: NatTerm}, m.R2 n -> n.R2 m.eval1 := 
       cases r1
       case Refl =>
         unfold NatTerm.eval1; simp
-        unfold NatTerm.eval1 at IHr1
-        have IHr1 := NatTerm.R2.S_inverse IHr1
-        apply NatTerm.R2.SPlus IHr1 IHr2
+        apply NatTerm.R2.SPlus R2.eval1 IHr2
       case SCong t H =>
         unfold NatTerm.eval1; simp
         unfold NatTerm.eval1 at IHr1
